@@ -1,0 +1,6 @@
+-i https://pypi.org/simple
+ape-infura==0.7.0
+ape-solidity==0.7.1
+ape-etherscan==0.7.1
+eth-ape==0.7.7
+eth-rlp==0.3.0 ; python_version >= '3.7' and python_version < '4'
