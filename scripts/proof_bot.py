@@ -10,10 +10,12 @@ from ape.api import AccountAPI
 from ape.cli import ConnectedProviderCommand, get_user_selected_account
 from ape.contracts import ContractInstance
 from ape.exceptions import ContractLogicError
+from ape.logging import logger
 from eth_typing import HexStr
 from eth_utils import to_bytes, to_int
 
 EVENT_SIGNATURE = "0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036"
+EXIT_ALREADY_PROCESSED_ERROR = "EXIT_ALREADY_PROCESSED"
 
 
 def hex_to_bytes(data: str) -> bytes:
@@ -30,7 +32,7 @@ def get_polygon_last_block_number(account: AccountAPI, fx_base_channel_root_tunn
             blocknumber = to_int(decoded[2])
             if blocknumber > last_blocknumber:
                 last_blocknumber = blocknumber
-    
+
     return last_blocknumber
 
 
@@ -56,13 +58,15 @@ def get_message_sent_events(graphql_endpoint: str, last_blocknumber: int) -> [di
     messages = data['data']['messageSents']
     return messages
 
-def push_proof(account: AccountAPI, fx_base_channel_root_tunnel: ContractInstance, proof: bytes):
+def push_proof(account: AccountAPI, fx_base_channel_root_tunnel: ContractInstance, proof: bytes) -> bool:
     try:
         fx_base_channel_root_tunnel.receiveMessage(proof, sender=account)
+        return True
     except ContractLogicError as e:
-        if e.message != "EXIT_ALREADY_PROCESSED":
+        if e.message != EXIT_ALREADY_PROCESSED_ERROR:
             raise e
-        print("processed")
+        logger.info("Transaction was processed")
+        return False
 
 
 def get_and_push_proof(
@@ -71,17 +75,22 @@ def get_and_push_proof(
         messages: [dict], 
         event_signature: str, 
         proof_generator: str
-        ):
+        ) -> int:
         
+    processed = 0
     for event in messages:
         txhash = event['transactionHash']
         s = requests.session()
         response = s.get(urljoin(proof_generator, txhash), params={'eventSignature': event_signature})
         if response.status_code != 200:
-            print("No proof")
-            return
+            logger.warning("Transaction is not checkpointed")
+            return processed
+        
         proof = response.json()['result']
-        push_proof(account, fx_base_channel_root_tunnel, proof)
+        if push_proof(account, fx_base_channel_root_tunnel, proof):
+            processed += 1
+
+    return processed
 
 
 @click.command(cls=ConnectedProviderCommand)
@@ -114,11 +123,14 @@ def cli(fx_root_tunnel, graphql_endpoint, proof_generator):
     account = get_user_selected_account()
     receiver = project.IReceiver.at(fx_root_tunnel)
     last_blocknumber = get_polygon_last_block_number(account, receiver)
+    logger.debug("Last processed block number: %d", last_blocknumber)
+
     messages = get_message_sent_events(graphql_endpoint, last_blocknumber)
+    logger.info("Got %d messages", len(messages))
     
-    print(messages)
     if len(messages) == 0:
-        print("Nothing to push")
+        logger.info("No new transactions")
         return
 
-    get_and_push_proof(account, receiver, messages, EVENT_SIGNATURE, proof_generator)
+    processed = get_and_push_proof(account, receiver, messages, EVENT_SIGNATURE, proof_generator)
+    logger.info("Processed %d transactions", processed)
