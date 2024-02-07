@@ -1,14 +1,19 @@
 #!/usr/bin/python3
 
+from urllib.parse import urljoin
+
+import click
 import requests
-from ape import project
 import rlp
+from ape import project
+from ape.api import AccountAPI
+from ape.cli import ConnectedProviderCommand, get_user_selected_account
+from ape.contracts import ContractInstance
+from ape.exceptions import ContractLogicError
 from eth_typing import HexStr
 from eth_utils import to_bytes, to_int
-from ape.api import AccountAPI
-from ape.contracts import ContractInstance
-from ape.cli import get_user_selected_account
-from ape.exceptions import ContractLogicError
+
+EVENT_SIGNATURE = "0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036"
 
 
 def hex_to_bytes(data: str) -> bytes:
@@ -71,24 +76,43 @@ def get_and_push_proof(
     for event in messages:
         txhash = event['transactionHash']
         s = requests.session()
-        response = s.get(proof_generator + txhash, params={'eventSignature': event_signature})
+        response = s.get(urljoin(proof_generator, txhash), params={'eventSignature': event_signature})
         if response.status_code != 200:
-            assert False, "No proof"
+            print("No proof")
+            return
         proof = response.json()['result']
         push_proof(account, fx_base_channel_root_tunnel, proof)
 
 
-def main():  
+@click.command(cls=ConnectedProviderCommand)
+@click.option(
+    "--fx-root-tunnel",
+    "-fxrt",
+    help="Address of FxBaseRootTunnel contract",
+    default=None,
+    required=True,
+    type=click.STRING,
+)
+@click.option(
+    "--graphql-endpoint",
+    "-ge",
+    help="GraphQL endpoint",
+    default=None,
+    required=True,
+    type=click.STRING,
+)
+@click.option(
+    "--proof-generator",
+    "-pg",
+    help="Proof generator URI",
+    default=None,
+    required=True,
+    type=click.STRING,
+)
+def cli(fx_root_tunnel, graphql_endpoint, proof_generator):
 
     account = get_user_selected_account()
-    polygon_root_address = "0x720754c84f0b1737801bf63c950914E0C1d4aCa2"
-
-    graphql_endpoint = "https://api.studio.thegraph.com/query/24143/polygonchildmumbai/version/latest"
-
-    event_signature = '0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036'
-    proof_generator = "https://proof-generator.polygon.technology/api/v1/mumbai/exit-payload/"
-
-    receiver = project.IReceiver.at(polygon_root_address)
+    receiver = project.IReceiver.at(fx_root_tunnel)
     last_blocknumber = get_polygon_last_block_number(account, receiver)
     messages = get_message_sent_events(graphql_endpoint, last_blocknumber)
     
@@ -97,4 +121,4 @@ def main():
         print("Nothing to push")
         return
 
-    get_and_push_proof(account, receiver, messages, event_signature, proof_generator)
+    get_and_push_proof(account, receiver, messages, EVENT_SIGNATURE, proof_generator)
