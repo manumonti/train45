@@ -7,7 +7,7 @@ import requests
 import rlp
 from ape import project
 from ape.api import AccountAPI
-from ape.cli import ConnectedProviderCommand, get_user_selected_account
+from ape.cli import ConnectedProviderCommand, select_account, account_option
 from ape.contracts import ContractInstance
 from ape.exceptions import ContractLogicError
 from ape.logging import logger
@@ -102,6 +102,7 @@ def get_and_push_proof(
 
 
 @click.command(cls=ConnectedProviderCommand)
+@account_option()
 @click.option(
     "--fx-root-tunnel",
     "-fxrt",
@@ -126,8 +127,8 @@ def get_and_push_proof(
     required=True,
     type=click.STRING,
 )
-def cli(fx_root_tunnel, graphql_endpoint, proof_generator):
-    account = get_user_selected_account()
+def cli(account, fx_root_tunnel, graphql_endpoint, proof_generator):
+    account.set_autosign(enabled=True)
     receiver = project.IReceiver.at(fx_root_tunnel)
     last_blocknumber = get_polygon_last_block_number(account, receiver)
     logger.debug("Last processed block number: %d", last_blocknumber)
