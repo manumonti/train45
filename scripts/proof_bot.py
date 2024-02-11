@@ -7,7 +7,7 @@ import requests
 import rlp
 from ape import project
 from ape.api import AccountAPI
-from ape.cli import ConnectedProviderCommand, select_account, account_option
+from ape.cli import ConnectedProviderCommand, account_option
 from ape.contracts import ContractInstance
 from ape.exceptions import ContractLogicError
 from ape.logging import logger
@@ -25,10 +25,15 @@ def hex_to_bytes(data: str) -> bytes:
 def get_polygon_last_block_number(
     account: AccountAPI, fx_base_channel_root_tunnel: ContractInstance
 ) -> int:
+    """
+    Search in tx history for the last `receiveMessage` tx,
+    extracts block number (from Polygon) using that data
+    """
+
     last_blocknumber = 0
     for tx in account.history:
         if tx.method_called and tx.method_called.name == "receiveMessage":
-            last_proof_data = hex_to_bytes(tx.transaction.dict()["data"])
+            last_proof_data = hex_to_bytes(tx.transaction.model_dump()["data"])
             last_proof = fx_base_channel_root_tunnel.decode_input(last_proof_data)[1][
                 "inputData"
             ]
@@ -40,7 +45,12 @@ def get_polygon_last_block_number(
     return last_blocknumber
 
 
-def get_message_sent_events(graphql_endpoint: str, last_blocknumber: int) -> [dict]:
+def get_message_sent_events(graphql_endpoint: str, last_blocknumber: int) -> list[dict]:
+    """
+    Queries GraphQL endpoint to retreive all new `MessageSent` events
+    on Polygon network
+    """
+
     gql = (
         """
     query AllMessagesSent {
@@ -66,6 +76,8 @@ def get_message_sent_events(graphql_endpoint: str, last_blocknumber: int) -> [di
 def push_proof(
     account: AccountAPI, fx_base_channel_root_tunnel: ContractInstance, proof: bytes
 ) -> bool:
+    """Sends `receiveMessage` tx with the provided proof"""
+
     try:
         fx_base_channel_root_tunnel.receiveMessage(proof, sender=account)
         return True
@@ -79,10 +91,15 @@ def push_proof(
 def get_and_push_proof(
     account: AccountAPI,
     fx_base_channel_root_tunnel: ContractInstance,
-    messages: [dict],
+    messages: list[dict],
     event_signature: str,
     proof_generator: str,
 ) -> int:
+    """
+    Iterates over all new messages, checks proof for each of them
+    and executes tx on Ethereum side of the channel
+    """
+
     processed = 0
     for event in messages:
         txhash = event["transactionHash"]
@@ -128,6 +145,8 @@ def get_and_push_proof(
     type=click.STRING,
 )
 def cli(account, fx_root_tunnel, graphql_endpoint, proof_generator):
+    """Provides proof from Polygon network to Ethereum"""
+
     account.set_autosign(enabled=True)
     receiver = project.IReceiver.at(fx_root_tunnel)
     last_blocknumber = get_polygon_last_block_number(account, receiver)

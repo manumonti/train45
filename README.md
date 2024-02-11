@@ -14,3 +14,11 @@ To install pre-commit locally:
 pre-commit install
 ```
 
+## Example of usage
+
+```bash
+export WEB3_INFURA_PROJECT_ID=<Infura project ID>
+export APE_ACCOUNTS_BOT_PASSPHRASE=<Passphrase for account with alias BOT>
+
+ape run proof_bot --fx-root-tunnel 0x720754c84f0b1737801bf63c950914E0C1d4aCa2 --graphql-endpoint https://api.studio.thegraph.com/query/24143/polygonchildmumbai/version/latest --proof-generator https://proof-generator.polygon.technology/api/v1/mumbai/exit-payload/ --network :goerli:infura --account BOT
+```
