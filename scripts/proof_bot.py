@@ -47,7 +47,7 @@ def get_polygon_last_block_number(
 
 def get_message_sent_events(graphql_endpoint: str, last_blocknumber: int) -> list[dict]:
     """
-    Queries GraphQL endpoint to retreive all new `MessageSent` events
+    Queries GraphQL endpoint to retrieve all new `MessageSent` events
     on Polygon network
     """
 
@@ -84,7 +84,7 @@ def push_proof(
     except ContractLogicError as e:
         if e.message != EXIT_ALREADY_PROCESSED_ERROR:
             raise e
-        logger.info("Transaction was processed")
+        logger.info("Transaction already processed")
         return False
 
 
