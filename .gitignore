@@ -1,0 +1,14 @@
+__pycache__
+.env
+build/
+venv/
+.python-version
+bin/
+.vscode/
+.idea/
+node_modules/
+.build
+contracts/.cache
+env
+.cache/
+dist/
