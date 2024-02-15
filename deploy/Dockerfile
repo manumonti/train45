@@ -4,10 +4,10 @@ RUN apt-get update && apt-get install -y cron python3 python3-pip
 
 WORKDIR /app
 
-COPY . /app
+COPY ../ /app
 
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN chmod +x run.sh
-RUN chmod +x cron.sh
 
-CMD ["/app/cron.sh"]
+RUN chmod +x deploy/run.sh deploy/cron.sh
+
+CMD ["/app/deploy/cron.sh"]

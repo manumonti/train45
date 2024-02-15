@@ -26,65 +26,71 @@ ape run proof_bot --fx-root-tunnel 0x720754c84f0b1737801bf63c950914E0C1d4aCa2 --
 
 ## Docker
 
-To build docker image:
+##### Build
 
 ```bash
-docker build -t nucypher/train45:latest .
+docker build -f deploy/Dockerfile -t nucypher/train45:latest .
 ```
 
-Setup up one log file:
+##### Run
 
-```
+First, create the log file:
+
+```bash
 touch /var/log/cron.log
 ```
 
-Run the container:
+Then run the bot:
 
 ```bash
 docker run             \
---detach               \
---restart always       \
 --name train45         \
+--detach               \
 --env-file .env        \
+-f deploy/Dockerfile   \
 -v /var/log/cron.log:/var/log/cron.log \
 -v /var/log/:/var/log/ \
 -v ~/.ape/:/root/.ape  \
 nucypher/train45:latest
 ```
 
-## Logging Server 
-
-Mount the log file to an alpine container (this only uses ~300kb of memory):
+Enjoy the logs:
 
 ```bash
-docker run       \
---name logserver \
---detach         \
---restart always \
--v /var/log/cron.log:/var/log/cron.log \
-alpine tail -f /var/log/cron.log
-
+tail -f /var/log/cron.log
 ```
 
-Launch the log server:
+##### Stop
 
 ```bash
-docker run       \
---name dozzle    \
---detach         \
---restart always \
---volume=/var/run/docker.sock:/var/run/docker.sock \
--p 8080:8080     \
-amir20/dozzle
+docker stop train45 && docker rm train45
 ```
 
-## Automatic Updates
+## Docker-compose
+
+##### Build
 
 ```bash
-docker run 
---name watchtower \
---detach          \
---restart always  \
---volume /var/run/docker.sock:/var/run/docker.sock \
-containrrr/watchtower train45
+docker-compose build
+```
+
+##### Start (all services)
+
+First, create the log file:
+
+```bash
+touch /var/log/cron.log
+```
+
+Then run the bot with docker-compose 
+(including log server and autoupdate service):
+
+```bash
+docker-compose up -d
+```
+
+##### Stop (all services)
+
+```bash
+docker-compose down
 ```

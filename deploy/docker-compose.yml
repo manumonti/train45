@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+
+  train45:
+    image: nucypher/train45:latest
+    container_name: train45
+    platform: linux/amd64
+    restart: always
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - /var/log/cron.log:/var/log/cron.log
+      - /var/log/:/var/log/
+      - ~/.ape/:/root/.ape
+
+  tail:
+    depends_on:
+      - train45
+    image: alpine:latest
+    container_name: tail
+    restart: always
+    volumes:
+      - /var/log:/var/log
+      - /var/log/cron.log:/var/log/cron.log
+    command: tail -f /var/log/cron.log
+
+  dozzle:
+    depends_on:
+      - train45
+      - tail
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  watchtower:
+    depends_on:
+      - train45
+      - tail
+      - dozzle
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: train45
