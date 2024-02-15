@@ -22,3 +22,23 @@ export APE_ACCOUNTS_BOT_PASSPHRASE=<Passphrase for account with alias BOT>
 
 ape run proof_bot --fx-root-tunnel 0x720754c84f0b1737801bf63c950914E0C1d4aCa2 --graphql-endpoint https://api.studio.thegraph.com/query/24143/polygonchildmumbai/version/latest --proof-generator https://proof-generator.polygon.technology/api/v1/mumbai/exit-payload/ --network :goerli:infura --account BOT
 ```
+
+
+## Docker
+
+To build docker image:
+
+```bash
+docker build -t nucypher/train45:latest .
+```
+
+To run docker container:
+
+```bash
+docker run -d         \
+--env-file .env       \
+-v /var/log:/var/log  \
+-v ~/.ape/:/root/.ape \
+nucypher/train45:latest
+```
+
