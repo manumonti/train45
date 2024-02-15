@@ -32,13 +32,59 @@ To build docker image:
 docker build -t nucypher/train45:latest .
 ```
 
-To run docker container:
+Setup up one log file:
+
+```
+touch /var/log/cron.log
+```
+
+Run the container:
 
 ```bash
-docker run -d         \
---env-file .env       \
--v /var/log:/var/log  \
--v ~/.ape/:/root/.ape \
+docker run             \
+--detach               \
+--restart always       \
+--name train45         \
+--env-file .env        \
+-v /var/log/cron.log:/var/log/cron.log \
+-v /var/log/:/var/log/ \
+-v ~/.ape/:/root/.ape  \
 nucypher/train45:latest
 ```
 
+## Logging Server 
+
+Mount the log file to an alpine container (this only uses ~300kb of memory):
+
+```bash
+docker run       \
+--name logserver \
+--detach         \
+--restart always \
+-v /var/log/cron.log:/var/log/cron.log \
+alpine tail -f /var/log/cron.log
+
+```
+
+Launch the log server:
+
+```bash
+docker run       \
+--name dozzle    \
+--detach         \
+--restart always \
+--volume=/var/run/docker.sock:/var/run/docker.sock \
+-p 8080:8080     \
+amir20/dozzle
+```
+
+## Automatic Updates
+
+```bash
+docker run 
+--name watchtower \
+--detach          \
+--restart always  \
+--volume /var/run/docker.sock:/var/run/docker.sock \
+containrrr/watchtower train45
+```
