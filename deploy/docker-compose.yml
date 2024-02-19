@@ -3,19 +3,18 @@ version: '3'
 services:
 
   train45:
-    image: nucypher/train45:latest
+    image: nucypher/train45:dev
     container_name: train45
     platform: linux/amd64
     restart: always
+    env_file:
+      - .env
     build:
       context: ../
       dockerfile: deploy/Dockerfile
-    env_file:
-      - .env
     volumes:
-      - /var/log/cron.log:/var/log/cron.log
-      - /var/log/:/var/log/
       - ~/.ape/:/root/.ape
+      - ~/.cache/log/:/root/.cache/log/
 
   tail:
     depends_on:
@@ -24,9 +23,8 @@ services:
     container_name: tail
     restart: always
     volumes:
-      - /var/log:/var/log
-      - /var/log/cron.log:/var/log/cron.log
-    command: tail -f /var/log/cron.log
+      - ~/.cache/log/:/root/.cache/log/
+    command: tail -f /root/.cache/log/cron.log
 
   dozzle:
     depends_on:
