@@ -1,5 +1,5 @@
 __pycache__
-.env
+deploy/.env
 build/
 venv/
 .python-version
