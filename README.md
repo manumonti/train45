@@ -19,8 +19,9 @@ pre-commit install
 ```bash
 export WEB3_INFURA_PROJECT_ID=<Infura project ID>
 export APE_ACCOUNTS_BOT_PASSPHRASE=<Passphrase for account with alias BOT>
+export ETHERSCAN_API_KEY=<API Key for Etherscan>
 
-ape run proof_bot --fx-root-tunnel 0x720754c84f0b1737801bf63c950914E0C1d4aCa2 --graphql-endpoint https://api.studio.thegraph.com/query/24143/polygonchildmumbai/version/latest --proof-generator https://proof-generator.polygon.technology/api/v1/mumbai/exit-payload/ --network :goerli:infura --account BOT
+ape run proof_bot --fx-root-tunnel 0x51825d6e893c51836dC9C0EdF3867c57CD0cACB3--graphql-endpoint https://subgraph.satsuma-prod.com/735cd3ac7b23/nucypher-ops/PolygonChild/api --proof-generator https://proof-generator.polygon.technology/api/v1/matic/exit-payload/ --network ethereum:mainnet:infura --account BOT
 ```
 
 
@@ -82,7 +83,7 @@ First, create the log file:
 touch /var/log/cron.log
 ```
 
-Then run the bot with docker-compose 
+Then run the bot with docker-compose
 (including log server and autoupdate service):
 
 ```bash
